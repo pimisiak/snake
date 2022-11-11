@@ -39,13 +39,13 @@ func newGame() (*game, error) {
 
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
-	x, y := screen.Size()
+	w, h := screen.Size()
 
 	game := &game{
 		random:    random,
 		screen:    screen,
-		snake:     newSnake(coordinate{x / 2, y / 2}, left),
-		apple:     apple{x/2 - 4, y/2 + 4},
+		snake:     newSnake(coordinate{w / 2, h / 2}, left),
+		apple:     apple{w/2 - 4, h/2 + 4},
 		obstacles: generateObstacles(),
 		speed:     time.Duration(50) * time.Millisecond,
 		pause:     false,

@@ -21,7 +21,7 @@ func TestEquals(t *testing.T) {
 	}
 }
 
-func TestMovecoordinate(t *testing.T) {
+func TestMove(t *testing.T) {
 	testCases := []struct {
 		input    coordinate
 		dir      direction

@@ -5,11 +5,13 @@ type snake struct {
 	direction direction
 }
 
+// creates snake moving in specified direction and head at provided coordinate
+// inital body length is 3
 func newSnake(head coordinate, dir direction) *snake {
 	var body []coordinate
 	body = append(body, head)
-	body = append([]coordinate{head.move(dir)}, body[:]...)
-	body = append([]coordinate{head.move(dir).move(dir)}, body[:]...)
+	body = append(body, body[0].move(opposite(dir)))
+	body = append(body, body[1].move(opposite(dir)))
 	return &snake{
 		body:      body,
 		direction: dir,
@@ -31,22 +33,7 @@ func (s *snake) eat(apple apple) {
 }
 
 func (s *snake) redirect(dir direction) {
-	switch dir {
-	case up:
-		if s.direction != down {
-			s.direction = dir
-		}
-	case down:
-		if s.direction != up {
-			s.direction = dir
-		}
-	case left:
-		if s.direction != right {
-			s.direction = dir
-		}
-	case right:
-		if s.direction != left {
-			s.direction = dir
-		}
+	if opposite(s.direction) != dir {
+		s.direction = dir
 	}
 }
