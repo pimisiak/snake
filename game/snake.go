@@ -5,7 +5,7 @@ type snake struct {
 	direction direction
 }
 
-// creates snake moving in specified direction and head at provided coordinate
+// creates snake moving in specified direction with head at provided coordinate
 // inital body length is 3
 func newSnake(head coordinate, dir direction) *snake {
 	var body []coordinate
