@@ -23,6 +23,7 @@ type game struct {
 	speed     time.Duration
 	pause     bool
 	over      bool
+	score     int
 }
 
 func Run() {
@@ -60,6 +61,7 @@ func newGame() (*game, error) {
 		speed:     time.Duration(50) * time.Millisecond,
 		pause:     false,
 		over:      false,
+		score:     0,
 	}
 
 	return game, nil
@@ -155,6 +157,7 @@ func (g *game) update() {
 	// check if snake ate apple
 	if g.snake.head().equals(g.apple) {
 		g.snake.eat(g.apple)
+		g.score += 1
 		g.spawnApple()
 	}
 
@@ -191,23 +194,21 @@ func (g *game) moveSnake(width, height int) {
 }
 
 func (g *game) render() {
-	g.drawSnake()
-	g.drawApple()
-
-	// draw obstacles
-
-	if g.pause {
-		g.drawPause()
-	}
-
 	if g.over {
 		g.drawGameOver()
+		return
+	}
+	g.drawSnake()
+	g.drawApple()
+	g.drawObstacles()
+	if g.pause {
+		g.drawPause()
 	}
 }
 
 func (g *game) drawSnake() {
 	for _, co := range g.snake.body {
-		g.screen.SetContent(co.x, co.y, '#', nil, tcell.StyleDefault.Foreground(tcell.ColorGreen))
+		g.screen.SetContent(co.x, co.y, '#', nil, tcell.StyleDefault.Foreground(tcell.ColorGreenYellow))
 	}
 }
 
@@ -215,13 +216,17 @@ func (g *game) drawApple() {
 	g.screen.SetContent(g.apple.x, g.apple.y, '*', nil, tcell.StyleDefault.Foreground(tcell.ColorRed))
 }
 
+func (g *game) drawObstacles() {
+}
+
 func (g *game) drawGameOver() {
 	g.screen.Beep()
 	g.screen.Fill('.', tcell.StyleDefault.Foreground(tcell.ColorSlateGray))
 	w, h := g.screen.Size()
-	g.drawStr(w/2-5, h/2-2, tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorDarkRed), "Game Over!")
-	g.drawStr(w/2-9, h/2-1, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press ESC to exit.")
-	g.drawStr(w/2-11, h/2, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press Ctr-r to restart.")
+	g.drawStr(w/2-6, h/2-5, tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorDarkRed), "Game Over!")
+	g.drawStr(w/2-5, h/2-3, tcell.StyleDefault.Foreground(tcell.ColorGreenYellow), fmt.Sprintf("Score: %d", g.score))
+	g.drawStr(w/2-9, h/2-1, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press ESC to exit")
+	g.drawStr(w/2-11, h/2, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press Ctr-r to restart")
 }
 
 func (g *game) drawPause() {
