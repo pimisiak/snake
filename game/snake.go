@@ -23,8 +23,8 @@ func (s *snake) head() coordinate {
 }
 
 func (s *snake) move() {
-	head := []coordinate{s.head().move(s.direction)}
-	s.body = append(head, s.body[:len(s.body)-1]...)
+	head := s.head().move(s.direction)
+	s.body = append([]coordinate{head}, s.body[:len(s.body)-1]...)
 }
 
 func (s *snake) eat(apple apple) {

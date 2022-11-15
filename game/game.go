@@ -39,7 +39,7 @@ func Run() {
 func newGame() (*game, error) {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		return nil, fmt.Errorf("Couldn not create new screen %x", err)
+		return nil, fmt.Errorf("Could not create new screen %x", err)
 	}
 
 	err = screen.Init()
@@ -162,7 +162,7 @@ func (g *game) update() {
 	//
 
 	// move snake
-	g.snake.move()
+	g.moveSnake(g.screen.Size())
 
 	g.mutex.Unlock()
 }
@@ -170,6 +170,24 @@ func (g *game) update() {
 func (g *game) spawnApple() {
 	w, h := g.screen.Size()
 	g.apple = apple{g.random.Intn(w), g.random.Intn(h)}
+}
+
+func (g *game) moveSnake(width, height int) {
+	g.snake.move()
+
+	// check if head out of bounds
+	if g.snake.body[0].x >= width {
+		g.snake.body[0].x = 0
+	}
+	if g.snake.body[0].x < 0 {
+		g.snake.body[0].x = width - 1
+	}
+	if g.snake.body[0].y >= height {
+		g.snake.body[0].y = 0
+	}
+	if g.snake.body[0].y < 0 {
+		g.snake.body[0].y = height - 1
+	}
 }
 
 func (g *game) render() {
@@ -201,9 +219,9 @@ func (g *game) drawGameOver() {
 	g.screen.Beep()
 	g.screen.Fill('.', tcell.StyleDefault.Foreground(tcell.ColorSlateGray))
 	w, h := g.screen.Size()
-	g.drawStr(w/2-7, h/2, tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorDarkRed), "Game Over!")
-	g.drawStr(w/2-11, h/2+1, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press ESC to exit.")
-	g.drawStr(w/2-14, h/2+2, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press Ctr-r to restart.")
+	g.drawStr(w/2-5, h/2-2, tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorDarkRed), "Game Over!")
+	g.drawStr(w/2-9, h/2-1, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press ESC to exit.")
+	g.drawStr(w/2-11, h/2, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press Ctr-r to restart.")
 }
 
 func (g *game) drawPause() {
