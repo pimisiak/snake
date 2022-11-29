@@ -40,12 +40,12 @@ func Run() {
 func newGame() (*game, error) {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		return nil, fmt.Errorf("Could not create new screen %x", err)
+		return nil, fmt.Errorf("could not create new screen %x", err)
 	}
 
 	err = screen.Init()
 	if err != nil {
-		return nil, fmt.Errorf("Could not initialize screen: %x", err)
+		return nil, fmt.Errorf("could not initialize screen: %x", err)
 	}
 
 	source := rand.NewSource(time.Now().UnixNano())
