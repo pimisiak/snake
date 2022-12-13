@@ -19,7 +19,7 @@ type game struct {
 	screen    tcell.Screen
 	snake     *snake
 	apple     apple
-	obstacles []obstacle
+	obstacles [][]int
 	speed     time.Duration
 	pause     bool
 	over      bool
@@ -56,13 +56,13 @@ func newGame() (*game, error) {
 		random:    random,
 		screen:    screen,
 		snake:     newSnake(coordinate{w / 2, h / 2}, left),
-		apple:     apple{random.Intn(w), random.Intn(h)},
-		obstacles: generateObstacles(),
-		speed:     time.Duration(50) * time.Millisecond,
+		obstacles: generateObstacles(w, h),
+		speed:     time.Duration(80) * time.Millisecond,
 		pause:     false,
 		over:      false,
 		score:     0,
 	}
+	game.spawnApple()
 
 	return game, nil
 }
@@ -138,10 +138,11 @@ func (g *game) registerKeys(quit chan struct{}) {
 func (g *game) restartGame() {
 	w, h := g.screen.Size()
 	g.snake = newSnake(coordinate{w / 2, h / 2}, left)
-	g.apple = apple{g.random.Intn(w), g.random.Intn(h)}
-	g.obstacles = generateObstacles()
+	g.obstacles = generateObstacles(w, h)
+	g.score = 0
 	g.pause = false
 	g.over = false
+	g.spawnApple()
 }
 
 func (g *game) update() {
@@ -154,15 +155,17 @@ func (g *game) update() {
 		}
 	}
 
+	// check if snake hit obstacle
+	if g.obstacles[g.snake.head().y][g.snake.head().x] == 1 {
+		g.over = true
+	}
+
 	// check if snake ate apple
 	if g.snake.head().equals(g.apple) {
 		g.snake.eat(g.apple)
 		g.score += 1
 		g.spawnApple()
 	}
-
-	// check if snake hit obstacle
-	//
 
 	// move snake
 	g.moveSnake(g.screen.Size())
@@ -172,7 +175,11 @@ func (g *game) update() {
 
 func (g *game) spawnApple() {
 	w, h := g.screen.Size()
-	g.apple = apple{g.random.Intn(w), g.random.Intn(h)}
+	x, y := g.random.Intn(w), g.random.Intn(h)
+	for g.obstacles[y][x] == 1 {
+		x, y = g.random.Intn(w), g.random.Intn(h)
+	}
+	g.apple = apple{x, y}
 }
 
 func (g *game) moveSnake(width, height int) {
@@ -217,6 +224,13 @@ func (g *game) drawApple() {
 }
 
 func (g *game) drawObstacles() {
+	for y := range g.obstacles {
+		for x := range g.obstacles[y] {
+			if g.obstacles[y][x] == 1 {
+				g.screen.SetContent(x, y, '@', nil, tcell.StyleDefault.Foreground(tcell.ColorLightSlateGray))
+			}
+		}
+	}
 }
 
 func (g *game) drawGameOver() {

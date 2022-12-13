@@ -9,6 +9,8 @@ const (
 	right direction = "RIGHT"
 )
 
+var directions = [4]direction{up, down, left, right}
+
 func opposite(dir direction) direction {
 	switch dir {
 	case up:
