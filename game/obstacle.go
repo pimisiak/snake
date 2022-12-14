@@ -22,7 +22,16 @@ func generateObstacles(width, height int) [][]int {
 	for i := 0; i < count; i++ {
 
 		// choose a random starting coordinate
-		current := coordinate{random.Intn(width), random.Intn(height)}
+		x := random.Intn(width)
+		y := random.Intn(height)
+
+		// continue until it is out of snake safe starting zone
+		for x >= width/2-10 && x <= width/2+10 && y >= height/2-10 && y <= height/2+10 {
+			x = random.Intn(width)
+			y = random.Intn(height)
+		}
+
+		current := coordinate{x, y}
 		obstacles[current.y][current.x] = 1
 
 		// generate the obstacle cluster
@@ -38,6 +47,11 @@ func generateObstacles(width, height int) [][]int {
 
 			// if the new location is out of bounds, continue to the next iteration
 			if current.x < 0 || current.x >= width || current.y < 0 || current.y >= height {
+				continue
+			}
+
+			// if the new location is within snake safe starting zone, continue to the next iteration
+			if current.x >= width/2-10 && current.x <= width/2+10 && current.y >= height/2-10 && current.y <= height/2+10 {
 				continue
 			}
 
