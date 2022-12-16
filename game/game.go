@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -14,7 +13,6 @@ import (
 type apple = coordinate
 
 type game struct {
-	mutex     sync.Mutex
 	random    *rand.Rand
 	screen    tcell.Screen
 	snake     *snake
@@ -32,9 +30,8 @@ func Run() {
 		log.Fatalln(err)
 		return
 	}
-	quit := make(chan struct{})
-	go game.registerKeys(quit)
-	game.loop(quit)
+	updates := game.registerKeys()
+	game.loop(updates)
 }
 
 func newGame() (*game, error) {
@@ -57,7 +54,7 @@ func newGame() (*game, error) {
 		screen:    screen,
 		snake:     newSnake(coordinate{w / 2, h / 2}, left),
 		obstacles: generateObstacles(w, h),
-		speed:     time.Duration(80) * time.Millisecond,
+		speed:     time.Duration(90) * time.Millisecond,
 		pause:     false,
 		over:      false,
 		score:     0,
@@ -67,70 +64,40 @@ func newGame() (*game, error) {
 	return game, nil
 }
 
-func (g *game) loop(quit chan struct{}) {
-	for {
-		select {
-		case <-quit:
-			return
-		case <-time.After(g.speed):
-			if !g.over {
-				g.screen.Clear()
-				if !g.pause {
-					g.update()
-				}
-				g.render()
-				g.screen.Show()
-			}
+func (g *game) loop(updates <-chan string) {
+	updateAndRender := func() {
+		if !g.over {
+			g.screen.Clear()
+			g.update()
+			g.render()
+			g.screen.Show()
 		}
 	}
-}
-
-func (g *game) registerKeys(quit chan struct{}) {
 	for {
-		switch event := g.screen.PollEvent().(type) {
-		case *tcell.EventKey:
-			g.mutex.Lock()
-			switch event.Key() {
-
-			// game control
-			case tcell.KeyEscape, tcell.KeyCtrlC:
-				close(quit)
-				g.screen.Fini()
-				os.Exit(0)
-			case tcell.KeyCtrlP:
-				if !g.over {
-					g.pause = !g.pause
-				}
-			case tcell.KeyCtrlR:
+		select {
+		case update := <-updates:
+			switch update {
+			case "UP":
+				g.snake.turn(up)
+			case "DOWN":
+				g.snake.turn(down)
+			case "RIGHT":
+				g.snake.turn(right)
+			case "LEFT":
+				g.snake.turn(left)
+			case "PAUSE":
+				g.pause = !g.pause
+			case "RESTART":
 				g.restartGame()
-
-			// movement
-			case tcell.KeyDown:
-				g.snake.redirect(down)
-			case tcell.KeyUp:
-				g.snake.redirect(up)
-			case tcell.KeyLeft:
-				g.snake.redirect(left)
-			case tcell.KeyRight:
-				g.snake.redirect(right)
-
-			// vim fun
-			case tcell.KeyRune:
-				switch event.Rune() {
-				case 'j':
-					g.snake.redirect(down)
-				case 'k':
-					g.snake.redirect(up)
-				case 'h':
-					g.snake.redirect(left)
-				case 'l':
-					g.snake.redirect(right)
-				}
-
+			case "SYNC":
+				g.screen.Sync()
+			case "QUIT":
+				g.screen.Fini()
+				return
 			}
-			g.mutex.Unlock()
-		default:
-			g.screen.Sync()
+			updateAndRender()
+		case <-time.After(g.speed):
+			updateAndRender()
 		}
 	}
 }
@@ -146,7 +113,9 @@ func (g *game) restartGame() {
 }
 
 func (g *game) update() {
-	g.mutex.Lock()
+	if g.pause || g.over {
+		return
+	}
 
 	// snakey bit me, and that really hurtz snakey
 	for i := 1; i < len(g.snake.body); i++ {
@@ -157,20 +126,23 @@ func (g *game) update() {
 
 	// check if snake hit obstacle
 	if g.obstacles[g.snake.head().y][g.snake.head().x] == 1 {
-		g.over = true
+		if len(g.snake.body) == 1 {
+			g.over = true
+		} else {
+			g.obstacles[g.snake.head().y][g.snake.head().x] = 0
+			g.snake.puke()
+			g.score++
+		}
 	}
 
 	// check if snake ate apple
 	if g.snake.head().equals(g.apple) {
 		g.snake.eat(g.apple)
-		g.score += 1
 		g.spawnApple()
 	}
 
 	// move snake
 	g.moveSnake(g.screen.Size())
-
-	g.mutex.Unlock()
 }
 
 func (g *game) spawnApple() {
@@ -227,7 +199,7 @@ func (g *game) drawObstacles() {
 	for y := range g.obstacles {
 		for x := range g.obstacles[y] {
 			if g.obstacles[y][x] == 1 {
-				g.screen.SetContent(x, y, '@', nil, tcell.StyleDefault.Foreground(tcell.ColorLightSlateGray))
+				g.screen.SetContent(x, y, '@', nil, tcell.StyleDefault.Foreground(tcell.ColorSlateGray))
 			}
 		}
 	}
@@ -252,4 +224,58 @@ func (g *game) drawStr(x, y int, style tcell.Style, str string) {
 		g.screen.SetContent(x, y, c, nil, style)
 		x++
 	}
+}
+
+func (g *game) registerKeys() <-chan string {
+	updates := make(chan string)
+	go func() {
+		for {
+			switch event := g.screen.PollEvent().(type) {
+			case *tcell.EventKey:
+				switch event.Key() {
+
+				// game control
+				case tcell.KeyEscape, tcell.KeyCtrlC:
+					updates <- "QUIT"
+					os.Exit(0)
+				case tcell.KeyCtrlP:
+					updates <- "PAUSE"
+				case tcell.KeyCtrlR:
+					updates <- "RESTART"
+
+				// movement
+				case tcell.KeyDown:
+					updates <- "DOWN"
+				case tcell.KeyUp:
+					updates <- "UP"
+				case tcell.KeyLeft:
+					updates <- "LEFT"
+				case tcell.KeyRight:
+					updates <- "RIGHT"
+
+				// vim fun
+				case tcell.KeyRune:
+					switch event.Rune() {
+					case 'j':
+						updates <- "DOWN"
+					case 'k':
+						updates <- "UP"
+					case 'h':
+						updates <- "LEFT"
+					case 'l':
+						updates <- "RIGHT"
+					case 'r':
+						updates <- "RESTART"
+					case 'p':
+						updates <- "PAUSE"
+					case 'q':
+						updates <- "QUIT"
+					}
+				}
+			default:
+				updates <- "SYNC"
+			}
+		}
+	}()
+	return updates
 }

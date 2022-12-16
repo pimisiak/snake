@@ -32,7 +32,11 @@ func (s *snake) eat(apple apple) {
 	s.body = append(head, s.body[:]...)
 }
 
-func (s *snake) redirect(dir direction) {
+func (s *snake) puke() {
+	s.body = s.body[:len(s.body)-1]
+}
+
+func (s *snake) turn(dir direction) {
 	if opposite(s.direction) != dir {
 		s.direction = dir
 	}

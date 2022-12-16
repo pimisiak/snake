@@ -16,7 +16,7 @@ func generateObstacles(width, height int) [][]int {
 	}
 
 	// base count on screen size
-	count := int(math.Floor(0.0085 * float64(width) * float64(height)))
+	count := int(math.Floor(0.0195 * float64(width) * float64(height)))
 
 	// generate the specified number of obstacles
 	for i := 0; i < count; i++ {
@@ -26,7 +26,7 @@ func generateObstacles(width, height int) [][]int {
 		y := random.Intn(height)
 
 		// continue until it is out of snake safe starting zone
-		for x >= width/2-10 && x <= width/2+10 && y >= height/2-10 && y <= height/2+10 {
+		for x >= width/2-10 && x <= width/2+10 && y >= height/2-5 && y <= height/2+5 {
 			x = random.Intn(width)
 			y = random.Intn(height)
 		}
@@ -51,7 +51,7 @@ func generateObstacles(width, height int) [][]int {
 			}
 
 			// if the new location is within snake safe starting zone, continue to the next iteration
-			if current.x >= width/2-10 && current.x <= width/2+10 && current.y >= height/2-10 && current.y <= height/2+10 {
+			if current.x >= width/2-10 && current.x <= width/2+10 && current.y >= height/2-5 && current.y <= height/2+5 {
 				continue
 			}
 

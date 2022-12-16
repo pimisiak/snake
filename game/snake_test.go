@@ -138,6 +138,28 @@ func TestEat(t *testing.T) {
 	}
 }
 
+func TestPuke(t *testing.T) {
+	// given
+	testCases := []struct {
+		snake *snake
+	}{
+		{newSnake(coordinate{10, 10}, up)},
+		{newSnake(coordinate{12, 5}, down)},
+		{newSnake(coordinate{1, 4}, left)},
+		{newSnake(coordinate{13, 10}, right)},
+	}
+
+	for _, testCase := range testCases {
+		// when
+		testCase.snake.puke()
+
+		//then
+		if len(testCase.snake.body) != 2 {
+			t.Errorf("Incorrect snake's body length, is %d, but should be %d", len(testCase.snake.body), 2)
+		}
+	}
+}
+
 func TestRedirect(t *testing.T) {
 	testCases := []struct {
 		snake    *snake
@@ -155,7 +177,7 @@ func TestRedirect(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		testCase.snake.redirect(testCase.dir)
+		testCase.snake.turn(testCase.dir)
 		if testCase.snake.direction != testCase.expected {
 			t.Errorf("Snake moving in incorrect direction, is %s, but should be %s", testCase.snake.direction, testCase.expected)
 		}
