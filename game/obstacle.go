@@ -3,13 +3,9 @@ package game
 import (
 	"math"
 	"math/rand"
-	"time"
 )
 
-func generateObstacles(width, height int) [][]int {
-	source := rand.NewSource(time.Now().UnixNano())
-	random := rand.New(source)
-
+func generateObstacles(width, height int, random rand.Rand) [][]int {
 	obstacles := make([][]int, height)
 	for i := range obstacles {
 		obstacles[i] = make([]int, width)
@@ -31,10 +27,10 @@ func generateObstacles(width, height int) [][]int {
 			y = random.Intn(height)
 		}
 
-		current := coordinate{x, y}
-		obstacles[current.y][current.x] = 1
-
 		// generate the obstacle cluster
+		obstacles[y][x] = 1
+		current := coordinate{x, y}
+
 		for {
 			end := random.Intn(1000)
 			if end >= 975 {
@@ -67,7 +63,7 @@ func generateObstacles(width, height int) [][]int {
 
 	// smooth edges
 	for i := 1; i <= 100_000; i++ {
-		smoothed := false
+		done := true
 
 		for x := 0; x < width; x++ {
 			for y := 0; y < height; y++ {
@@ -103,27 +99,27 @@ func generateObstacles(width, height int) [][]int {
 
 				if lu == 1 && ru == 1 && obstacles[y-1][x] != 1 {
 					obstacles[y-1][x] = 1
-					smoothed = true
+					done = false
 				}
 
 				if ld == 1 && rd == 1 && obstacles[y+1][x] != 1 {
 					obstacles[y+1][x] = 1
-					smoothed = true
+					done = false
 				}
 
 				if ld == 1 && lu == 1 && obstacles[y][x-1] != 1 {
 					obstacles[y][x-1] = 1
-					smoothed = true
+					done = false
 				}
 
 				if rd == 1 && ru == 1 && obstacles[y][x+1] != 1 {
 					obstacles[y][x+1] = 1
-					smoothed = true
+					done = false
 				}
 			}
 		}
 
-		if !smoothed {
+		if done {
 			break
 		}
 	}

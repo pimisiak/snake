@@ -22,6 +22,7 @@ type game struct {
 	pause     bool
 	over      bool
 	score     int
+	hardcore  bool
 }
 
 func Run() {
@@ -53,11 +54,12 @@ func newGame() (*game, error) {
 		random:    random,
 		screen:    screen,
 		snake:     newSnake(coordinate{w / 2, h / 2}, left),
-		obstacles: generateObstacles(w, h),
+		obstacles: generateObstacles(w, h, *random),
 		speed:     time.Duration(90) * time.Millisecond,
 		pause:     false,
 		over:      false,
 		score:     0,
+		hardcore:  false,
 	}
 	game.spawnApple()
 
@@ -67,10 +69,8 @@ func newGame() (*game, error) {
 func (g *game) loop(updates <-chan string) {
 	updateAndRender := func() {
 		if !g.over {
-			g.screen.Clear()
 			g.update()
 			g.render()
-			g.screen.Show()
 		}
 	}
 	for {
@@ -89,6 +89,14 @@ func (g *game) loop(updates <-chan string) {
 				g.pause = !g.pause
 			case "RESTART":
 				g.restartGame()
+			case "RESIZE":
+				if !g.over {
+					g.restartGame()
+				} else {
+					g.render()
+				}
+			case "HARDCORE":
+				g.hardcore = !g.hardcore
 			case "SYNC":
 				g.screen.Sync()
 			case "QUIT":
@@ -104,8 +112,9 @@ func (g *game) loop(updates <-chan string) {
 
 func (g *game) restartGame() {
 	w, h := g.screen.Size()
-	g.snake = newSnake(coordinate{w / 2, h / 2}, left)
-	g.obstacles = generateObstacles(w, h)
+	direction := g.snake.direction
+	g.snake = newSnake(coordinate{w / 2, h / 2}, direction)
+	g.obstacles = generateObstacles(w, h, *g.random)
 	g.score = 0
 	g.pause = false
 	g.over = false
@@ -120,24 +129,29 @@ func (g *game) update() {
 	// snakey bit me, and that really hurtz snakey
 	for i := 1; i < len(g.snake.body); i++ {
 		if g.snake.head().equals(g.snake.body[i]) {
+			g.screen.Beep()
 			g.over = true
 		}
 	}
 
 	// check if snake hit obstacle
 	if g.obstacles[g.snake.head().y][g.snake.head().x] == 1 {
-		if len(g.snake.body) == 1 {
+		if g.hardcore {
+			g.screen.Beep()
+			g.over = true
+		} else if len(g.snake.body) == 1 {
+			g.screen.Beep()
 			g.over = true
 		} else {
 			g.obstacles[g.snake.head().y][g.snake.head().x] = 0
 			g.snake.puke()
-			g.score++
 		}
 	}
 
 	// check if snake ate apple
 	if g.snake.head().equals(g.apple) {
 		g.snake.eat(g.apple)
+		g.score++
 		g.spawnApple()
 	}
 
@@ -173,8 +187,10 @@ func (g *game) moveSnake(width, height int) {
 }
 
 func (g *game) render() {
+	g.screen.Clear()
 	if g.over {
 		g.drawGameOver()
+		g.screen.Show()
 		return
 	}
 	g.drawSnake()
@@ -183,6 +199,7 @@ func (g *game) render() {
 	if g.pause {
 		g.drawPause()
 	}
+	g.screen.Show()
 }
 
 func (g *game) drawSnake() {
@@ -206,17 +223,16 @@ func (g *game) drawObstacles() {
 }
 
 func (g *game) drawGameOver() {
-	g.screen.Beep()
 	g.screen.Fill('.', tcell.StyleDefault.Foreground(tcell.ColorSlateGray))
 	w, h := g.screen.Size()
-	g.drawStr(w/2-6, h/2-5, tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorDarkRed), "Game Over!")
+	g.drawStr(w/2-6, h/2-5, tcell.StyleDefault.Foreground(tcell.ColorRed), "Game Over!")
 	g.drawStr(w/2-5, h/2-3, tcell.StyleDefault.Foreground(tcell.ColorGreenYellow), fmt.Sprintf("Score: %d", g.score))
-	g.drawStr(w/2-9, h/2-1, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press ESC to exit")
-	g.drawStr(w/2-11, h/2, tcell.StyleDefault.Foreground(tcell.ColorGreen), "Press Ctr-r to restart")
+	g.drawStr(w/2-9, h/2-1, tcell.StyleDefault.Foreground(tcell.ColorLightSkyBlue), "Press ESC to exit")
+	g.drawStr(w/2-9, h/2, tcell.StyleDefault.Foreground(tcell.ColorLightSkyBlue), "Press r to restart")
 }
 
 func (g *game) drawPause() {
-	g.drawStr(1, 1, tcell.StyleDefault.Foreground(tcell.ColorSlateGray), "Pause...")
+	g.drawStr(1, 1, tcell.StyleDefault.Foreground(tcell.ColorLightSkyBlue), "Pause...")
 }
 
 func (g *game) drawStr(x, y int, style tcell.Style, str string) {
@@ -231,6 +247,8 @@ func (g *game) registerKeys() <-chan string {
 	go func() {
 		for {
 			switch event := g.screen.PollEvent().(type) {
+			case *tcell.EventResize:
+				updates <- "RESIZE"
 			case *tcell.EventKey:
 				switch event.Key() {
 
@@ -268,8 +286,11 @@ func (g *game) registerKeys() <-chan string {
 						updates <- "RESTART"
 					case 'p':
 						updates <- "PAUSE"
+					case '!':
+						updates <- "HARDCORE"
 					case 'q':
 						updates <- "QUIT"
+						os.Exit(0)
 					}
 				}
 			default:
