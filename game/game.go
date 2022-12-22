@@ -46,9 +46,11 @@ func newGame() (*game, error) {
 		return nil, fmt.Errorf("could not initialize screen: %x", err)
 	}
 
-	source := rand.NewSource(time.Now().UnixNano())
-	random := rand.New(source)
-	w, h := screen.Size()
+	var (
+		source = rand.NewSource(time.Now().UnixNano())
+		random = rand.New(source)
+		w, h   = screen.Size()
+	)
 
 	game := &game{
 		random:    random,
@@ -94,6 +96,7 @@ func (g *game) loop(updates <-chan string) {
 					g.restartGame()
 				} else {
 					g.render()
+					continue
 				}
 			case "HARDCORE":
 				g.hardcore = !g.hardcore

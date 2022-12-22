@@ -5,6 +5,10 @@ import (
 	"math/rand"
 )
 
+const (
+	obstacleRate = 0.0195
+)
+
 func generateObstacles(width, height int, random rand.Rand) [][]int {
 	obstacles := make([][]int, height)
 	for i := range obstacles {
@@ -12,7 +16,7 @@ func generateObstacles(width, height int, random rand.Rand) [][]int {
 	}
 
 	// base count on screen size
-	count := int(math.Floor(0.0195 * float64(width) * float64(height)))
+	count := int(math.Floor(obstacleRate * float64(width) * float64(height)))
 
 	// generate the specified number of obstacles
 	for i := 0; i < count; i++ {
@@ -22,7 +26,7 @@ func generateObstacles(width, height int, random rand.Rand) [][]int {
 		y := random.Intn(height)
 
 		// continue until it is out of snake safe starting zone
-		for x >= width/2-10 && x <= width/2+10 && y >= height/2-5 && y <= height/2+5 {
+		for isInSafeZone(x, y, width, height) {
 			x = random.Intn(width)
 			y = random.Intn(height)
 		}
@@ -47,7 +51,7 @@ func generateObstacles(width, height int, random rand.Rand) [][]int {
 			}
 
 			// if the new location is within snake safe starting zone, continue to the next iteration
-			if current.x >= width/2-10 && current.x <= width/2+10 && current.y >= height/2-5 && current.y <= height/2+5 {
+			if isInSafeZone(current.x, current.y, width, height) {
 				continue
 			}
 
@@ -64,65 +68,69 @@ func generateObstacles(width, height int, random rand.Rand) [][]int {
 	// smooth edges
 	for i := 1; i <= 100_000; i++ {
 		done := true
-
 		for x := 0; x < width; x++ {
 			for y := 0; y < height; y++ {
 				if obstacles[y][x] == 0 {
 					continue
 				}
 
-				current := coordinate{x, y}
-				leftUp := current.move(left).move(up)
-				rightUp := current.move(right).move(up)
-				leftDown := current.move(left).move(down)
-				rightDown := current.move(right).move(down)
+				var (
+					current = coordinate{x, y}
+					lu      = current.move(left).move(up)
+					ru      = current.move(right).move(up)
+					ld      = current.move(left).move(down)
+					rd      = current.move(right).move(down)
+					luval   = 0
+					ruval   = 0
+					ldval   = 0
+					rdval   = 0
+				)
 
-				lu := 0
-				if leftUp.x >= 0 && leftUp.y >= 0 {
-					lu = obstacles[leftUp.y][leftUp.x]
+				if lu.x >= 0 && lu.y >= 0 {
+					luval = obstacles[lu.y][lu.x]
 				}
 
-				ru := 0
-				if rightUp.x < width && rightUp.y >= 0 {
-					ru = obstacles[rightUp.y][rightUp.x]
+				if ru.x < width && ru.y >= 0 {
+					ruval = obstacles[ru.y][ru.x]
 				}
 
-				ld := 0
-				if leftDown.x >= 0 && leftDown.y < height {
-					ld = obstacles[leftDown.y][leftDown.x]
+				if ld.x >= 0 && ld.y < height {
+					ldval = obstacles[ld.y][ld.x]
 				}
 
-				rd := 0
-				if rightDown.x < width && rightDown.y < height {
-					rd = obstacles[rightDown.y][rightDown.x]
+				if rd.x < width && rd.y < height {
+					rdval = obstacles[rd.y][rd.x]
 				}
 
-				if lu == 1 && ru == 1 && obstacles[y-1][x] != 1 {
+				if luval == 1 && ruval == 1 && obstacles[y-1][x] != 1 {
 					obstacles[y-1][x] = 1
 					done = false
 				}
 
-				if ld == 1 && rd == 1 && obstacles[y+1][x] != 1 {
+				if ldval == 1 && rdval == 1 && obstacles[y+1][x] != 1 {
 					obstacles[y+1][x] = 1
 					done = false
 				}
 
-				if ld == 1 && lu == 1 && obstacles[y][x-1] != 1 {
+				if ldval == 1 && luval == 1 && obstacles[y][x-1] != 1 {
 					obstacles[y][x-1] = 1
 					done = false
 				}
 
-				if rd == 1 && ru == 1 && obstacles[y][x+1] != 1 {
+				if rdval == 1 && ruval == 1 && obstacles[y][x+1] != 1 {
 					obstacles[y][x+1] = 1
 					done = false
 				}
 			}
 		}
-
 		if done {
 			break
 		}
 	}
 
 	return obstacles
+}
+
+func isInSafeZone(x, y, w, h int) bool {
+	return x >= w/2-10 && x <= w/2+10 && y >= h/2-5 && y <= h/2+5
 }

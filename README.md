@@ -11,4 +11,6 @@ Use arrows (or h,j,k,l) for movement.
 
 ```r``` -> restart game
 
+```p``` -> pause game
+
 ```ESC/q``` -> quit game
