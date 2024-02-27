@@ -7,7 +7,7 @@ You can eat stones, but beware! It makes snake puke which results in shorter bod
 
 Use arrows (or h,j,k,l) for movement.
 
-```!``` -> hardcode mode, snake chokes on stones instantly...
+```!``` -> hardcore mode, snake chokes on stones instantly...
 
 ```r``` -> restart game
 
